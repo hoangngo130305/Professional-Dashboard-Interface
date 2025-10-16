@@ -46,8 +46,53 @@ export const useSettings = () => {
   return context;
 };
 
+// Media Library Context
+export type MediaItem = {
+  id: number;
+  url: string;
+  type: 'image' | 'video';
+  title: string;
+  date: string;
+};
+
+export type ContentItem = {
+  id: number;
+  title: string;
+  content: string;
+  type: string;
+  date: string;
+  hasMedia?: boolean;
+  mediaUrl?: string;
+};
+
+type MediaLibraryContextType = {
+  mediaLibrary: MediaItem[];
+  addToMediaLibrary: (item: Omit<MediaItem, 'id' | 'date'>) => void;
+  removeFromMediaLibrary: (id: number) => void;
+  contentLibrary: ContentItem[];
+  addToContentLibrary: (item: Omit<ContentItem, 'id' | 'date'>) => void;
+  removeFromContentLibrary: (id: number) => void;
+};
+
+const MediaLibraryContext = createContext<MediaLibraryContextType | undefined>(undefined);
+
+export const useMediaLibrary = () => {
+  const context = useContext(MediaLibraryContext);
+  if (!context) throw new Error('useMediaLibrary must be used within MediaLibraryProvider');
+  return context;
+};
+
+type PendingPost = {
+  content: string;
+  platforms: string[];
+  type: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'video';
+} | null;
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [pendingPost, setPendingPost] = useState<PendingPost>(null);
   
   // Settings State
   const [businessName, setBusinessName] = useState('Shop ABC');
@@ -55,6 +100,91 @@ export default function App() {
   const [primaryColor, setPrimaryColor] = useState('blue');
   const [compactMode, setCompactMode] = useState(false);
   const [language, setLanguage] = useState('vi');
+
+  // Media Library State - Initial mock data
+  const [mediaLibrary, setMediaLibrary] = useState<MediaItem[]>([
+    {
+      id: 1,
+      url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800',
+      type: 'image',
+      title: 'Sản phẩm đồng hồ cao cấp',
+      date: '11/01/2025',
+    },
+    {
+      id: 2,
+      url: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=800',
+      type: 'image',
+      title: 'Thời trang nữ mới nhất',
+      date: '10/01/2025',
+    },
+    {
+      id: 3,
+      url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
+      type: 'image',
+      title: 'Cửa hàng thời trang',
+      date: '09/01/2025',
+    },
+    {
+      id: 4,
+      url: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800',
+      type: 'image',
+      title: 'Giày sneaker hot trend',
+      date: '08/01/2025',
+    },
+    {
+      id: 5,
+      url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800',
+      type: 'image',
+      title: 'Phụ kiện thời trang',
+      date: '07/01/2025',
+    },
+    {
+      id: 6,
+      url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?w=800',
+      type: 'image',
+      title: 'Quà tặng handmade',
+      date: '06/01/2025',
+    },
+  ]);
+
+  const addToMediaLibrary = (item: Omit<MediaItem, 'id' | 'date'>) => {
+    const newItem: MediaItem = {
+      ...item,
+      id: Date.now(), // Simple unique ID
+      date: new Date().toLocaleDateString('vi-VN'),
+    };
+    console.log('✅ App.tsx - Thêm vào Media Library:', newItem);
+    setMediaLibrary(prev => {
+      const updated = [newItem, ...prev];
+      console.log('🖼️ Media Library sau khi thêm:', updated);
+      return updated;
+    }); // Add to beginning
+  };
+
+  const removeFromMediaLibrary = (id: number) => {
+    setMediaLibrary(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Content Library State
+  const [contentLibrary, setContentLibrary] = useState<ContentItem[]>([]);
+
+  const addToContentLibrary = (item: Omit<ContentItem, 'id' | 'date'>) => {
+    const newItem: ContentItem = {
+      ...item,
+      id: Date.now(),
+      date: new Date().toLocaleDateString('vi-VN'),
+    };
+    console.log('✅ App.tsx - Thêm vào Content Library:', newItem);
+    setContentLibrary(prev => {
+      const updated = [newItem, ...prev];
+      console.log('📚 Content Library sau khi thêm:', updated);
+      return updated;
+    });
+  };
+
+  const removeFromContentLibrary = (id: number) => {
+    setContentLibrary(prev => prev.filter(item => item.id !== id));
+  };
   
   // Apply theme to body
   React.useEffect(() => {
@@ -80,6 +210,15 @@ export default function App() {
     document.documentElement.style.setProperty('--primary-color-rgb', colors.rgb);
   }, [primaryColor]);
 
+  const handleNavigateWithContent = (content: string, platforms: string[], type: string, mediaUrl?: string, mediaType?: 'image' | 'video') => {
+    setPendingPost({ content, platforms, type, mediaUrl, mediaType });
+    setActiveTab('auto-post');
+  };
+
+  const clearPendingPost = () => {
+    setPendingPost(null);
+  };
+
   const renderPage = () => {
     switch (activeTab) {
       case 'home':
@@ -87,9 +226,9 @@ export default function App() {
       case 'chat':
         return <ChatPage />;
       case 'content':
-        return <ContentPage />;
+        return <ContentPage onNavigateToAutoPost={handleNavigateWithContent} />;
       case 'auto-post':
-        return <AutoPostPage />;
+        return <AutoPostPage pendingPost={pendingPost} onClearPendingPost={clearPendingPost} />;
       case 'data':
         return <DataManagementPage />;
       case 'reports':
@@ -217,25 +356,36 @@ export default function App() {
     setLanguage,
   };
 
+  const mediaLibraryValue = {
+    mediaLibrary,
+    addToMediaLibrary,
+    removeFromMediaLibrary,
+    contentLibrary,
+    addToContentLibrary,
+    removeFromContentLibrary,
+  };
+
   return (
     <SettingsContext.Provider value={settingsValue}>
-      <div className={`min-h-screen transition-colors duration-300 ${
-        theme === 'dark' 
-          ? 'bg-slate-900' 
-          : 'bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50'
-      }`}>
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        
-        <div className="ml-64">
-          <DashboardHeader onNavigate={setActiveTab} />
+      <MediaLibraryContext.Provider value={mediaLibraryValue}>
+        <div className={`min-h-screen transition-colors duration-300 ${
+          theme === 'dark' 
+            ? 'bg-slate-900' 
+            : 'bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50'
+        }`}>
+          <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
           
-          <main className={`transition-all duration-300 ${compactMode ? 'p-4' : 'p-8'}`}>
-            {renderPage()}
-          </main>
+          <div className="ml-64">
+            <DashboardHeader onNavigate={setActiveTab} />
+            
+            <main className={`transition-all duration-300 ${compactMode ? 'p-4' : 'p-8'}`}>
+              {renderPage()}
+            </main>
+          </div>
+          
+          <Toaster position="top-right" richColors />
         </div>
-        
-        <Toaster position="top-right" richColors />
-      </div>
+      </MediaLibraryContext.Provider>
     </SettingsContext.Provider>
   );
 }

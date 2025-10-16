@@ -9,10 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
-import { FileText, Image as ImageIcon, Video, Sparkles, Download, Copy, History, Wand2, TrendingUp, Settings2, MoreHorizontal, Clock, Star, Trash2, Edit3, Plus, BookOpen, Megaphone, Search as SearchIcon, ChevronDown } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { FileText, Image as ImageIcon, Video, Sparkles, Download, Copy, History, Wand2, TrendingUp, Settings2, MoreHorizontal, Clock, Star, Trash2, Edit3, Plus, BookOpen, Megaphone, Search as SearchIcon, ChevronDown, ShieldCheck, AlertCircle, CheckCircle2, XCircle, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Slider } from '../ui/slider';
+import { Checkbox } from '../ui/checkbox';
+import { useMediaLibrary } from '../../src/App';
 
 const contentTemplates = [
   { id: 1, name: 'Flash Sale', category: 'Bán hàng', icon: '⚡', description: 'Khuyến mãi giới hạn thời gian' },
@@ -24,14 +27,79 @@ const contentTemplates = [
 ];
 
 const recentContents = [
-  { id: 1, title: 'Flash Sale Cuối Tuần - Giảm 50%', type: 'Bài bán hàng', time: '2 giờ trước', words: 245, starred: true },
-  { id: 2, title: 'Review Top 5 Áo Thun Nam Đáng Mua', type: 'Blog SEO', time: '5 giờ trước', words: 1240, starred: false },
-  { id: 3, title: 'Bộ Sưu Tập Mùa Hè 2024', type: 'Giới thiệu', time: '1 ngày trước', words: 320, starred: true },
-  { id: 4, title: 'Quảng cáo Facebook - Áo Khoác', type: 'Facebook Ads', time: '2 ngày trước', words: 180, starred: false },
-  { id: 5, title: 'Hướng Dẫn Chọn Size Áo', type: 'Blog', time: '3 ngày trước', words: 890, starred: false },
+  { 
+    id: 1, 
+    title: 'Flash Sale Cuối Tuần - Giảm 50%', 
+    type: 'Bài bán hàng', 
+    time: '2 giờ trước', 
+    words: 245, 
+    starred: true,
+    contentType: 'sale-post',
+    contentStyle: 'urgent',
+    productName: 'Áo thun nam cao cấp',
+    productDetails: 'Chất liệu cotton 100%, form rộng thoải mái, nhiều màu sắc. Giảm 50% cho 100 đơn đầu tiên.',
+    content: '🎉 FLASH SALE CUỐI TUẦN - GIẢM 50% 🎉\n\nÁo thun nam cao cấp - Chất liệu cotton 100%, form rộng thoải mái...'
+  },
+  { 
+    id: 2, 
+    title: 'Review Top 5 Áo Thun Nam Đáng Mua', 
+    type: 'Blog SEO', 
+    time: '5 giờ trước', 
+    words: 1240, 
+    starred: false,
+    contentType: 'blog',
+    contentStyle: 'professional',
+    productName: 'Top 5 Áo Thun Nam 2024',
+    productDetails: 'Review chi tiết 5 mẫu áo thun nam được yêu thích nhất năm 2024',
+    content: '# Top 5 Áo Thun Nam Đáng Mua Năm 2024\n\nNăm 2024, xu hướng áo thun nam ngày càng đa dạng...'
+  },
+  { 
+    id: 3, 
+    title: 'Bộ Sưu Tập Mùa Hè 2024', 
+    type: 'Giới thiệu', 
+    time: '1 ngày trước', 
+    words: 320, 
+    starred: true,
+    contentType: 'social',
+    contentStyle: 'luxury',
+    productName: 'BST Summer Paradise 2024',
+    productDetails: 'Bộ sưu tập mùa hè với gam màu pastel nhẹ nhàng, chất liệu thoáng mát',
+    content: '✨ SUMMER PARADISE 2024 ✨\n\nRa mắt bộ sưu tập mùa hè với những thiết kế tươi mới...'
+  },
+  { 
+    id: 4, 
+    title: 'Quảng cáo Facebook - Áo Khoác', 
+    type: 'Facebook Ads', 
+    time: '2 ngày trước', 
+    words: 180, 
+    starred: false,
+    contentType: 'ads',
+    contentStyle: 'friendly',
+    productName: 'Áo khoác dù 2 lớp',
+    productDetails: 'Chống nước tốt, giữ ấm hiệu quả, phù hợp mọi thời tiết',
+    content: '🧥 ÁO KHOÁC DÙ 2 LỚP - CHỐNG NƯỚC SIÊU TỐT\n\nMùa mưa đến rồi, bạn đã chuẩn bị áo khoác chưa?...'
+  },
+  { 
+    id: 5, 
+    title: 'Hướng Dẫn Chọn Size Áo', 
+    type: 'Blog', 
+    time: '3 ngày trước', 
+    words: 890, 
+    starred: false,
+    contentType: 'blog',
+    contentStyle: 'friendly',
+    productName: 'Hướng dẫn chọn size áo chuẩn',
+    productDetails: 'Cách đo size, bảng size chi tiết, tips chọn size phù hợp',
+    content: '📏 HƯỚNG DẪN CHỌN SIZE ÁO CHUẨN\n\nBạn còn đang phân vân không biết mình mặc size nào?...'
+  },
 ];
 
-export function ContentPage() {
+interface ContentPageProps {
+  onNavigateToAutoPost?: (content: string, platforms: string[], type: string, mediaUrl?: string, mediaType?: 'image' | 'video') => void;
+}
+
+export function ContentPage({ onNavigateToAutoPost }: ContentPageProps) {
+  const { addToMediaLibrary, addToContentLibrary } = useMediaLibrary();
   const [generatedContent, setGeneratedContent] = useState('');
   const [contentType, setContentType] = useState('sale-post');
   const [productName, setProductName] = useState('');
@@ -51,6 +119,7 @@ export function ContentPage() {
   const [imageStyle, setImageStyle] = useState('realistic');
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [generatedImage, setGeneratedImage] = useState('');
+  const [isImageStarred, setIsImageStarred] = useState(false);
   
   // Video generation states
   const [videoScript, setVideoScript] = useState('');
@@ -58,6 +127,23 @@ export function ContentPage() {
   const [videoVoice, setVideoVoice] = useState('female');
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState('');
+  const [isVideoStarred, setIsVideoStarred] = useState(false);
+
+  // Moderation states
+  const [showModerationDialog, setShowModerationDialog] = useState(false);
+  const [pendingContent, setPendingContent] = useState('');
+  const [pendingPlatforms, setPendingPlatforms] = useState<string[]>([]);
+  const [pendingType, setPendingType] = useState('product');
+  const [pendingMediaUrl, setPendingMediaUrl] = useState<string | undefined>(undefined);
+  const [pendingMediaType, setPendingMediaType] = useState<'image' | 'video' | undefined>(undefined);
+  const [moderationAction, setModerationAction] = useState<'post' | 'save-to-library'>('post');
+  const [moderationChecks, setModerationChecks] = useState({
+    appropriate: false,
+    noSpam: false,
+    noViolation: false,
+    quality: false,
+  });
+  const [moderationNote, setModerationNote] = useState('');
 
   const handleGenerate = () => {
     if (!productName.trim()) {
@@ -99,9 +185,33 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
     }, 2000);
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedContent);
-    toast.success('Đã sao chép nội dung vào clipboard!');
+  const handleCopy = async () => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(generatedContent);
+        toast.success('Đã sao chép nội dung vào clipboard!');
+      } else {
+        // Fallback for older browsers or blocked clipboard
+        const textArea = document.createElement('textarea');
+        textArea.value = generatedContent;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          toast.success('Đã sao chép nội dung vào clipboard!');
+        } catch (err) {
+          toast.error('Không thể sao chép. Vui lòng copy thủ công.');
+        }
+        document.body.removeChild(textArea);
+      }
+    } catch (err) {
+      toast.error('Không thể sao chép. Vui lòng copy thủ công.');
+    }
   };
 
   const handleUseTemplate = (template: typeof contentTemplates[0]) => {
@@ -123,8 +233,127 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
   };
 
   const handlePost = () => {
-    toast.success('Đã chuyển sang trang Tự động đăng bài!');
-    // Could navigate to auto-post page here
+    let contentToPost = '';
+    let postType = 'product';
+    let mediaUrl: string | undefined = undefined;
+    let mediaType: 'image' | 'video' | undefined = undefined;
+    
+    // Determine content and type based on active tab
+    if (activeTab === 'text') {
+      if (!generatedContent.trim()) {
+        toast.error('Chưa có nội dung để đăng');
+        return;
+      }
+      contentToPost = generatedContent;
+      postType = contentType;
+    } else if (activeTab === 'image') {
+      if (!generatedImage) {
+        toast.error('Chưa có hình ảnh để đăng');
+        return;
+      }
+      // Use image prompt as content
+      contentToPost = imagePrompt || 'Hình ảnh được tạo bằng AI';
+      postType = 'product';
+      mediaUrl = generatedImage;
+      mediaType = 'image';
+    } else if (activeTab === 'video') {
+      if (!generatedVideo) {
+        toast.error('Chưa có video để đăng');
+        return;
+      }
+      // Use video script as content
+      contentToPost = videoScript || 'Video được tạo bằng AI';
+      postType = 'product';
+      // For demo, use placeholder image as video thumbnail
+      mediaUrl = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800';
+      mediaType = 'video';
+    }
+    
+    // Determine platforms based on content type
+    const defaultPlatforms = activeTab === 'video' 
+      ? ['facebook', 'instagram', 'telegram'] 
+      : ['facebook', 'instagram'];
+    
+    // Store pending content for moderation
+    setPendingContent(contentToPost);
+    setPendingPlatforms(defaultPlatforms);
+    setPendingType(postType);
+    setPendingMediaUrl(mediaUrl);
+    setPendingMediaType(mediaType);
+    setModerationAction('post');
+    
+    // Reset moderation checks
+    setModerationChecks({
+      appropriate: false,
+      noSpam: false,
+      noViolation: false,
+      quality: false,
+    });
+    setModerationNote('');
+    
+    // Open moderation dialog
+    setShowModerationDialog(true);
+  };
+
+  const handleApproveAndPost = () => {
+    // Check if all checks are completed
+    const allChecked = Object.values(moderationChecks).every(v => v === true);
+    
+    if (!allChecked) {
+      toast.error('Vui lòng hoàn thành tất cả tiêu chí kiểm duyệt');
+      return;
+    }
+    
+    // Check action type
+    if (moderationAction === 'save-to-library') {
+      // Save to library
+      if (pendingMediaUrl && pendingMediaType) {
+        // Save media (image/video)
+        const mediaItem = {
+          url: pendingMediaUrl,
+          type: pendingMediaType,
+          title: pendingContent || `${pendingMediaType === 'image' ? 'Hình ảnh' : 'Video'} AI`,
+        };
+        console.log('💾 Lưu media vào thư viện:', mediaItem);
+        addToMediaLibrary(mediaItem);
+        setShowModerationDialog(false);
+        toast.success('Đã phê duyệt và lưu vào thư viện!', {
+          description: 'Bạn có thể sử dụng trong "Đăng từ thư viện" tại trang Tự động đăng bài'
+        });
+      } else {
+        // Save text content
+        addToContentLibrary({
+          title: productName || 'Nội dung AI',
+          content: pendingContent,
+          type: pendingType,
+        });
+        setShowModerationDialog(false);
+        toast.success('Đã phê duyệt và lưu nội dung vào thư viện!', {
+          description: 'Bạn có thể sử dụng trong "Đăng từ thư viện" tại trang Tự động đăng bài'
+        });
+      }
+    } else {
+      // Navigate to auto-post page with content and media
+      if (onNavigateToAutoPost) {
+        onNavigateToAutoPost(pendingContent, pendingPlatforms, pendingType, pendingMediaUrl, pendingMediaType);
+        setShowModerationDialog(false);
+        toast.success('Đã phê duyệt và chuyển sang trang Tự động đăng bài!', {
+          description: pendingMediaType ? `${pendingMediaType === 'image' ? 'Hình ảnh' : 'Video'} đã được đính kèm` : 'Nội dung đã được điền sẵn vào form'
+        });
+      }
+    }
+  };
+
+  const handleRejectContent = () => {
+    if (!moderationNote.trim()) {
+      toast.error('Vui lòng nhập lý do từ chối');
+      return;
+    }
+    
+    setShowModerationDialog(false);
+    toast.error('Nội dung đã bị từ chối', {
+      description: moderationNote
+    });
   };
 
   const handleToggleStar = () => {
@@ -132,20 +361,57 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
     toast.success(isStarred ? 'Đã bỏ lưu nội dung' : 'Đã lưu nội dung vào yêu thích');
   };
 
-  const handleDeleteContent = (id: number) => {
+  const handleDeleteContent = (id: number, title: string) => {
     setSavedContents(savedContents.filter(item => item.id !== id));
-    toast.success('Đã xóa nội dung');
+    toast.success('Đã xóa nội dung', {
+      description: `"${title}" đã bị xóa khỏi danh sách`
+    });
   };
 
   const handleEditContent = (item: typeof recentContents[0]) => {
-    setProductName(item.title);
+    // Load all content data
+    setProductName(item.productName);
+    setProductDetails(item.productDetails);
+    setContentType(item.contentType);
+    setContentStyle(item.contentStyle);
+    setGeneratedContent(item.content);
     setActiveTab('text');
-    toast.info('Đã tải nội dung để chỉnh sửa');
+    
+    // Scroll to top to see the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    toast.success('Đã tải nội dung để chỉnh sửa', {
+      description: 'Bạn có thể chỉnh sửa và tạo lại nội dung'
+    });
   };
 
-  const handleCopyContent = (title: string) => {
-    navigator.clipboard.writeText(title);
-    toast.success('Đã sao chép nội dung');
+  const handleCopyContent = async (title: string) => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(title);
+        toast.success('Đã sao chép nội dung');
+      } else {
+        // Fallback for older browsers or blocked clipboard
+        const textArea = document.createElement('textarea');
+        textArea.value = title;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+          document.execCommand('copy');
+          toast.success('Đã sao chép nội dung');
+        } catch (err) {
+          toast.error('Không thể sao chép. Vui lòng copy thủ công.');
+        }
+        document.body.removeChild(textArea);
+      }
+    } catch (err) {
+      toast.error('Không thể sao chép. Vui lòng copy thủ công.');
+    }
   };
 
   const handleGenerateImage = async () => {
@@ -170,10 +436,63 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
       
       setGeneratedImage(randomImage);
       setIsGeneratingImage(false);
+      setIsImageStarred(false); // Reset favorite state
       toast.success('Hình ảnh đã được tạo thành công!', {
         description: 'Bạn có thể xem và tải xuống hình ảnh'
       });
     }, 3000);
+  };
+
+  const handleCopyImageUrl = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(generatedImage);
+        toast.success('Đã sao chép URL hình ảnh!');
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = generatedImage;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast.success('Đã sao chép URL hình ảnh!');
+      }
+    } catch (error) {
+      toast.error('Không thể sao chép');
+    }
+  };
+
+  const handleToggleImageStar = () => {
+    setIsImageStarred(!isImageStarred);
+    toast.success(isImageStarred ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
+  };
+
+  const handleCopyVideoScript = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(videoScript);
+        toast.success('Đã sao chép kịch bản video!');
+      } else {
+        const textArea = document.createElement('textarea');
+        textArea.value = videoScript;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        toast.success('Đã sao chép kịch bản video!');
+      }
+    } catch (error) {
+      toast.error('Không thể sao chép');
+    }
+  };
+
+  const handleToggleVideoStar = () => {
+    setIsVideoStarred(!isVideoStarred);
+    toast.success(isVideoStarred ? 'Đã bỏ yêu thích' : 'Đã thêm vào yêu thích');
   };
 
   const handleGenerateVideo = () => {
@@ -187,6 +506,7 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
       // Set video thumbnail/preview
       setGeneratedVideo('video-generated');
       setIsGeneratingVideo(false);
+      setIsVideoStarred(false); // Reset favorite state
       toast.success('Video đã được tạo thành công!', {
         description: 'Bạn có thể xem và tải xuống video'
       });
@@ -202,6 +522,8 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
     setImagePrompt('');
     setVideoScript('');
     setIsStarred(false);
+    setIsImageStarred(false);
+    setIsVideoStarred(false);
     toast.info('Đã xóa form');
   };
 
@@ -214,6 +536,81 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
       link.click();
       document.body.removeChild(link);
       toast.success('Đã tải xuống hình ảnh!');
+    }
+  };
+
+  const handleSaveTextToLibrary = () => {
+    if (generatedContent) {
+      // Set up moderation for save-to-library action
+      setPendingContent(generatedContent);
+      setPendingPlatforms([]);
+      setPendingType(contentType);
+      setPendingMediaUrl(undefined);
+      setPendingMediaType(undefined);
+      setModerationAction('save-to-library');
+      
+      // Reset moderation checks
+      setModerationChecks({
+        appropriate: false,
+        noSpam: false,
+        noViolation: false,
+        quality: false,
+      });
+      setModerationNote('');
+      
+      // Open moderation dialog
+      setShowModerationDialog(true);
+    }
+  };
+
+  const handleSaveImageToLibrary = () => {
+    if (generatedImage) {
+      // Set up moderation for save-to-library action
+      setPendingContent(imagePrompt || 'Hình ảnh AI');
+      setPendingPlatforms([]);
+      setPendingType('media');
+      setPendingMediaUrl(generatedImage);
+      setPendingMediaType('image');
+      setModerationAction('save-to-library');
+      
+      // Reset moderation checks
+      setModerationChecks({
+        appropriate: false,
+        noSpam: false,
+        noViolation: false,
+        quality: false,
+      });
+      setModerationNote('');
+      
+      // Open moderation dialog
+      setShowModerationDialog(true);
+    }
+  };
+
+  const handleSaveVideoToLibrary = () => {
+    if (generatedVideo) {
+      // For demo, use a placeholder video URL
+      const videoUrl = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800';
+      
+      // Set up moderation for save-to-library action
+      setPendingContent(videoScript || 'Video AI');
+      setPendingPlatforms([]);
+      setPendingType('media');
+      setPendingMediaUrl(videoUrl);
+      setPendingMediaType('video');
+      setModerationAction('save-to-library');
+      
+      // Reset moderation checks
+      setModerationChecks({
+        appropriate: false,
+        noSpam: false,
+        noViolation: false,
+        quality: false,
+      });
+      setModerationNote('');
+      
+      // Open moderation dialog
+      setShowModerationDialog(true);
     }
   };
 
@@ -673,38 +1070,63 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
                   </ScrollArea>
                   
                   <div className="flex-shrink-0 space-y-3">
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" 
-                        onClick={handleCopy}
-                      >
-                        <Copy className="w-4 h-4" />
-                        Sao chép
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-                        onClick={handleDownload}
-                      >
-                        <Download className="w-4 h-4" />
-                        Tải xuống
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className={`hover:bg-yellow-50 hover:border-yellow-300 ${isStarred ? 'bg-yellow-50 text-yellow-600 border-yellow-300' : 'hover:text-yellow-700'}`}
-                        onClick={handleToggleStar}
-                      >
-                        <Star className={`w-4 h-4 ${isStarred ? 'fill-yellow-500' : ''}`} />
-                      </Button>
-                    </div>
+                    <TooltipProvider>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="h-10 w-full hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" 
+                              onClick={handleCopy}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Sao chép</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="h-10 w-full hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                              onClick={handleDownload}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Tải xuống</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline"
+                              size="icon"
+                              className={`h-10 w-full hover:bg-yellow-50 hover:border-yellow-300 ${isStarred ? 'bg-yellow-50 text-yellow-600 border-yellow-300' : 'hover:text-yellow-700'}`}
+                              onClick={handleToggleStar}
+                            >
+                              <Star className={`w-4 h-4 ${isStarred ? 'fill-yellow-500' : ''}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Yêu thích</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                     <Button 
-                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30 gap-2"
-                      onClick={handlePost}
+                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg shadow-purple-500/30 gap-2"
+                      onClick={handleSaveTextToLibrary}
                     >
-                      <Megaphone className="w-4 h-4" />
-                      Đăng bài ngay
+                      <Save className="w-4 h-4" />
+                      Lưu vào thư viện
                     </Button>
                   </div>
                 </div>
@@ -732,30 +1154,63 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
                         <Badge variant="outline" className="text-xs">{imageStyle}</Badge>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-                        onClick={handleDownloadImage}
-                      >
-                        <Download className="w-4 h-4" />
-                        Tải xuống
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className={`hover:bg-yellow-50 hover:border-yellow-300 ${isStarred ? 'bg-yellow-50 text-yellow-600 border-yellow-300' : 'hover:text-yellow-700'}`}
-                        onClick={handleToggleStar}
-                      >
-                        <Star className={`w-4 h-4 ${isStarred ? 'fill-yellow-500' : ''}`} />
-                      </Button>
-                    </div>
+                    <TooltipProvider>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="h-10 w-full hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" 
+                              onClick={handleCopyImageUrl}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Sao chép</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="h-10 w-full hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                              onClick={handleDownloadImage}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Tải xuống</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline"
+                              size="icon"
+                              className={`h-10 w-full hover:bg-yellow-50 hover:border-yellow-300 ${isImageStarred ? 'bg-yellow-50 text-yellow-600 border-yellow-300' : 'hover:text-yellow-700'}`}
+                              onClick={handleToggleImageStar}
+                            >
+                              <Star className={`w-4 h-4 ${isImageStarred ? 'fill-yellow-500' : ''}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Yêu thích</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                     <Button 
                       className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/30 gap-2"
-                      onClick={handlePost}
+                      onClick={handleSaveImageToLibrary}
                     >
-                      <Megaphone className="w-4 h-4" />
-                      Đăng bài ngay
+                      <Save className="w-4 h-4" />
+                      Lưu vào thư viện
                     </Button>
                   </div>
                 </div>
@@ -788,30 +1243,63 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
                         <Badge variant="outline" className="text-xs">{videoVoice}</Badge>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1 gap-2 hover:bg-green-50 hover:text-green-700 hover:border-green-300"
-                        onClick={handleDownloadVideo}
-                      >
-                        <Download className="w-4 h-4" />
-                        Tải xuống
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className={`hover:bg-yellow-50 hover:border-yellow-300 ${isStarred ? 'bg-yellow-50 text-yellow-600 border-yellow-300' : 'hover:text-yellow-700'}`}
-                        onClick={handleToggleStar}
-                      >
-                        <Star className={`w-4 h-4 ${isStarred ? 'fill-yellow-500' : ''}`} />
-                      </Button>
-                    </div>
+                    <TooltipProvider>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="h-10 w-full hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300" 
+                              onClick={handleCopyVideoScript}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Sao chép</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon"
+                              className="h-10 w-full hover:bg-green-50 hover:text-green-700 hover:border-green-300"
+                              onClick={handleDownloadVideo}
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Tải xuống</p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline"
+                              size="icon"
+                              className={`h-10 w-full hover:bg-yellow-50 hover:border-yellow-300 ${isVideoStarred ? 'bg-yellow-50 text-yellow-600 border-yellow-300' : 'hover:text-yellow-700'}`}
+                              onClick={handleToggleVideoStar}
+                            >
+                              <Star className={`w-4 h-4 ${isVideoStarred ? 'fill-yellow-500' : ''}`} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Yêu thích</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TooltipProvider>
                     <Button 
                       className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/30 gap-2"
-                      onClick={handlePost}
+                      onClick={handleSaveVideoToLibrary}
                     >
-                      <Megaphone className="w-4 h-4" />
-                      Đăng bài ngay
+                      <Save className="w-4 h-4" />
+                      Lưu vào thư viện
                     </Button>
                   </div>
                 </div>
@@ -896,7 +1384,7 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
                     variant="outline" 
                     size="icon" 
                     className="h-8 w-8 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                    onClick={() => handleDeleteContent(item.id)}
+                    onClick={() => handleDeleteContent(item.id, item.title)}
                   >
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -1006,7 +1494,7 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
                           variant="outline" 
                           size="sm" 
                           className="text-red-600 hover:bg-red-50"
-                          onClick={() => handleDeleteContent(item.id)}
+                          onClick={() => handleDeleteContent(item.id , item.title)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -1020,6 +1508,203 @@ ${productDetails ? `📝 Chi tiết:\n${productDetails}\n\n` : ''}🎁 Ưu đãi
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowHistory(false)}>
               Đóng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Moderation Dialog */}
+      <Dialog open={showModerationDialog} onOpenChange={setShowModerationDialog}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] p-0 flex flex-col gap-0">
+          <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              {moderationAction === 'save-to-library' 
+                ? 'Kiểm duyệt trước khi lưu vào thư viện'
+                : 'Kiểm duyệt nội dung trước khi đăng'
+              }
+            </DialogTitle>
+            <DialogDescription>
+              {moderationAction === 'save-to-library'
+                ? 'Vui lòng xác nhận media đáp ứng các tiêu chuẩn trước khi lưu vào thư viện'
+                : 'Vui lòng kiểm tra và xác nhận nội dung trước khi đăng bài'
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="overflow-y-auto px-6 flex-1">
+            <div className="space-y-5 pb-4">
+              {/* Content Preview */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700">Nội dung cần kiểm duyệt</Label>
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 max-h-64 overflow-y-auto">
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{pendingContent}</p>
+                </div>
+              </div>
+
+              {/* Media Preview */}
+              {pendingMediaUrl && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700">
+                    {pendingMediaType === 'image' ? 'Hình ảnh đính kèm' : 'Video đính kèm'}
+                  </Label>
+                  <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                    {pendingMediaType === 'image' ? (
+                      <img 
+                        src={pendingMediaUrl} 
+                        alt="Preview"
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gradient-to-br from-slate-800 to-slate-900 rounded-lg flex items-center justify-center">
+                        <Video className="w-12 h-12 text-white" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <Separator />
+
+              {/* Moderation Checklist */}
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-slate-700">Tiêu chí kiểm duyệt</Label>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                    <Checkbox 
+                      id="check-appropriate"
+                      checked={moderationChecks.appropriate}
+                      onCheckedChange={(checked) => setModerationChecks({...moderationChecks, appropriate: checked as boolean})}
+                      className="mt-0.5 border-slate-400"
+                    />
+                    <div className="flex-1">
+                      <label 
+                        htmlFor="check-appropriate"
+                        className="text-sm font-medium text-slate-900 cursor-pointer"
+                      >
+                        Nội dung phù hợp và chuyên nghiệp
+                      </label>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Không chứa từ ngữ phản cảm, thiếu văn hóa
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                    <Checkbox 
+                      id="check-spam"
+                      checked={moderationChecks.noSpam}
+                      onCheckedChange={(checked) => setModerationChecks({...moderationChecks, noSpam: checked as boolean})}
+                      className="mt-0.5 border-slate-400"
+                    />
+                    <div className="flex-1">
+                      <label 
+                        htmlFor="check-spam"
+                        className="text-sm font-medium text-slate-900 cursor-pointer"
+                      >
+                        Không phải spam hoặc lừa đảo
+                      </label>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Nội dung chân thực, không gây hiểu lầm
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                    <Checkbox 
+                      id="check-violation"
+                      checked={moderationChecks.noViolation}
+                      onCheckedChange={(checked) => setModerationChecks({...moderationChecks, noViolation: checked as boolean})}
+                      className="mt-0.5 border-slate-400"
+                    />
+                    <div className="flex-1">
+                      <label 
+                        htmlFor="check-violation"
+                        className="text-sm font-medium text-slate-900 cursor-pointer"
+                      >
+                        Không vi phạm chính sách nền tảng
+                      </label>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Tuân thủ quy định Facebook, Instagram, Zalo...
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 transition-colors">
+                    <Checkbox 
+                      id="check-quality"
+                      checked={moderationChecks.quality}
+                      onCheckedChange={(checked) => setModerationChecks({...moderationChecks, quality: checked as boolean})}
+                      className="mt-0.5 border-slate-400"
+                    />
+                    <div className="flex-1">
+                      <label 
+                        htmlFor="check-quality"
+                        className="text-sm font-medium text-slate-900 cursor-pointer"
+                      >
+                        Chất lượng nội dung tốt
+                      </label>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Ngữ pháp chính xác, thông tin rõ ràng
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Moderation Note */}
+              <div className="space-y-2">
+                <Label htmlFor="moderation-note" className="text-sm font-semibold text-slate-700">
+                  Ghi chú (tùy chọn)
+                </Label>
+                <Textarea
+                  id="moderation-note"
+                  placeholder="Nhập ghi chú hoặc lý do từ chối nếu cần..."
+                  rows={3}
+                  value={moderationNote}
+                  onChange={(e) => setModerationNote(e.target.value)}
+                  className="resize-none bg-white border-slate-200"
+                />
+              </div>
+
+              {/* Warning */}
+              {!Object.values(moderationChecks).every(v => v === true) && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-800">
+                    Vui lòng hoàn thành tất cả tiêu chí kiểm duyệt trước khi phê duyệt nội dung
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="border-t pt-4 px-6 pb-6 shrink-0 gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowModerationDialog(false)}
+              className="gap-2"
+            >
+              Hủy
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleRejectContent}
+              className="gap-2 text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700"
+            >
+              <XCircle className="w-4 h-4" />
+              Từ chối
+            </Button>
+            <Button 
+              onClick={handleApproveAndPost}
+              className="gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              disabled={!Object.values(moderationChecks).every(v => v === true)}
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              Phê duyệt & Đăng
             </Button>
           </DialogFooter>
         </DialogContent>
